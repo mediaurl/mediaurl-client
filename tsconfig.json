@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "lib": ["es2019", "dom"],
+    "module": "esnext",
+    "target": "es2019",
+    "moduleResolution": "node",
+    "declaration": true,
+    "strictNullChecks": true,
+    "esModuleInterop": true,
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}
