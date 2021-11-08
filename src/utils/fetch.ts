@@ -7,7 +7,7 @@ export const fetch: FetchFn = async (url, init) => {
   return await fetchFn!(url, init);
 };
 
-let fetchFn = fetch;
+let fetchFn: FetchFn = global.fetch;
 
 export const setFetchFn = (fn: FetchFn) => {
   fetchFn = fn;

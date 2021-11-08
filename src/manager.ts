@@ -19,7 +19,9 @@ import {
   TranslatedText,
   VirtualMovieItem,
 } from "@mediaurl/schema";
-import _ from "lodash";
+import flatten from "lodash.flatten";
+import isEqual from "lodash.isequal";
+import uniqBy from "lodash.uniqby";
 import Url from "url-parse";
 import { AddonClass, BaseAddonClass } from "./addon";
 import { createItem, createSource, createSubtitle } from "./model";
@@ -331,8 +333,8 @@ export class Manager {
     const ignore = new Set<string>();
 
     const promises: Record<string, Promise<void>> = {};
-    const spawn = async (p: Promise<void>) => {
-      const id = Date.now() + Math.random() + Math.random();
+    const spawn = async (prefix: any, p: Promise<void>) => {
+      const id = `${prefix}-${Date.now() + Math.random() + Math.random()}`;
       promises[id] = p;
       try {
         await p;
@@ -396,6 +398,7 @@ export class Manager {
             (refresh === "required" && isKnownRequirement)
           ) {
             spawn(
+              `req-class-${other.props.id}`,
               loadViaAddon(other, isKnownRequirement, requirePath, rootIndex)
             );
           } else {
@@ -407,6 +410,7 @@ export class Manager {
 
       if (req.endpoints.some((endpoint) => !ignore.has(endpoint))) {
         spawn(
+          `req-endpoint-${req.endpoints[0]}`,
           loadViaEndpoints(
             req.endpoints,
             endpointType,
@@ -439,7 +443,7 @@ export class Manager {
       // Add addon
       // console.debug(`Adding addon ${requirePath.join(" -> ")}`);
       const other = this.getAddon(addon.props.id);
-      if (!other || !_.isEqual(other.props, addon.props)) {
+      if (!other || !isEqual(other.props, addon.props)) {
         this.addAddonClass(addon);
         if (onUpdate) onUpdate(addon);
       }
@@ -463,7 +467,10 @@ export class Manager {
       // Legacy, load repository
       if (addon.props._isLegacyRepositoryAddon && !ignore.has(addon.props.id)) {
         if (!discover || requirePath.length < maxDepth) {
-          spawn(loadViaRepository(addon, requirePath));
+          spawn(
+            `repo-${addon.props.id}`,
+            loadViaRepository(addon, requirePath)
+          );
         }
       }
     };
@@ -485,7 +492,7 @@ export class Manager {
           },
         });
         for (const props of res) {
-          props.endpoints = _.flatten(
+          props.endpoints = flatten(
             (props.endpoints ?? []).map((endpoint) =>
               addon
                 .getEndpoints()
@@ -504,6 +511,8 @@ export class Manager {
         if (onError) onError({ addon }, error);
       }
     };
+
+    const x: any = {};
 
     const loadViaEndpoints = async (
       endpoints: string[],
@@ -600,6 +609,7 @@ export class Manager {
     for (const input of inputs) {
       if (input.addonClass) {
         spawn(
+          `input-class-${input.addonClass.props.id}`,
           loadViaAddon(
             input.addonClass.isImmutable()
               ? input.addonClass
@@ -616,6 +626,7 @@ export class Manager {
         );
       } else if (input.addonProps) {
         spawn(
+          `input-props-${input.addonProps.id}`,
           loadViaAddon(
             addAvailable(input.addonProps, []),
             true,
@@ -1093,7 +1104,7 @@ export class Manager {
               );
               // addAddonToItem(item, context.addon);
               if (onUpdate) {
-                onUpdate(_.uniqBy(result, "id"));
+                onUpdate(uniqBy(result, "id"));
               }
             }
           }
@@ -1104,7 +1115,7 @@ export class Manager {
         }
       })
     );
-    return _.uniqBy(result, "id");
+    return uniqBy(result, "id");
   }
 
   /**

@@ -1,4 +1,3 @@
-import _ from "lodash";
 import Url from "url-parse";
 
 const mutateUrl = (baseUrl: Url, update: Record<string, any>) => {
@@ -26,14 +25,14 @@ const mutateUrl = (baseUrl: Url, update: Record<string, any>) => {
 };
 
 export const mutateUserInput = (inputUrl: string) => {
-  if (!inputUrl.includes("//")) inputUrl = `//${inputUrl}`;
+  if (!inputUrl.includes("://")) inputUrl = `x://${inputUrl}`;
 
   let url = new Url(inputUrl, true);
   if (!url.pathname) url = mutateUrl(url, { pathname: "/" });
 
   // Create todo list with different ports and protocols
   const tempTodo: Url[] = [];
-  if (url.protocol === "") {
+  if (url.protocol === "" || url.protocol === "x") {
     if (url.port === "80") {
       tempTodo.push(mutateUrl(url, { protocol: "http", port: "" }));
     } else if (url.port === "443") {

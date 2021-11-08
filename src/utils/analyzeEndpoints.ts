@@ -132,7 +132,11 @@ class EndpointFetcher {
         ) {
           resolve(handleResponse(result, this.allowServerResponses));
         } else {
-          // TODO: Check if it's something else, like a playlist?
+          if (res.status >= 400 && res.status < 600) {
+            throw new Error(String(res.status));
+          } else {
+            throw new Error("Unknown request error");
+          }
         }
       } catch (error) {
         clearTimeout(t);
@@ -141,6 +145,8 @@ class EndpointFetcher {
     });
   }
 }
+
+const x: any = {};
 
 export const analyzeEndpoints = async ({
   endpoints,
@@ -164,6 +170,7 @@ export const analyzeEndpoints = async ({
       ),
     ]);
   }
+
   while (!result && (endpoints.length > 0 || pending.length > 0)) {
     // Start new tasks
     if (endpoints.length > 0) {

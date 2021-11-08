@@ -11,18 +11,21 @@ import {
   SubItem,
   Subtitle,
 } from "@mediaurl/schema";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
+import isEqual from "lodash.isequal";
+import uniq from "lodash.uniq";
+import uniqBy from "lodash.uniqby";
 import { ItemHelper } from "./types";
 import { stripAddonUrl } from "./utils/addonUrl";
 import { djb2 } from "./utils/djb2";
 
 const getNewValue = <T = any>(newValue: T, oldValue: T) =>
-  _.isEqual(newValue, oldValue) ? oldValue : newValue;
+  isEqual(newValue, oldValue) ? oldValue : newValue;
 
 export const createAddon = (addon: Addon, oldAddon?: Addon) => {
   // endpoints
   if (addon.endpoints) {
-    addon.endpoints = _.uniq(addon.endpoints.map(stripAddonUrl));
+    addon.endpoints = uniq(addon.endpoints.map(stripAddonUrl));
   }
 
   // actions
@@ -200,7 +203,7 @@ export const createItem = (
 
     // Handle similar items
     if (item.similarItems) {
-      const all = _.uniqBy(
+      const all = uniqBy(
         [
           ...((<ItemHelper>newItem)?.similarItems ?? []),
           ...((<ItemHelper>oldItem)?.similarItems ?? []),
@@ -232,7 +235,7 @@ export const createSource = (
 ) => {
   const newSource = {
     kind,
-    ..._.cloneDeep(source),
+    ...cloneDeep(source),
   };
   if (!newSource.type) newSource.type = "url";
   if (!newSource.id) newSource.id = djb2(<string>newSource.url);

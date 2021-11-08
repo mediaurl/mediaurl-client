@@ -10,7 +10,9 @@ import {
   TaskRequest,
   TaskResponse,
 } from "@mediaurl/schema";
-import _ from "lodash";
+import cloneDeep from "lodash.clonedeep";
+import flatten from "lodash.flatten";
+import uniq from "lodash.uniq";
 import semver from "semver";
 import { createAddon } from "./model";
 import settings from "./settings";
@@ -93,7 +95,7 @@ export abstract class BaseAddonClass {
 
       return {
         legacyId,
-        endpoints: _.uniq(endpoints),
+        endpoints: uniq(endpoints),
       };
     });
   }
@@ -135,8 +137,8 @@ export abstract class BaseAddonClass {
   }
 
   public getItemTypes(): ItemTypes[] {
-    return _.uniq(
-      _.flatten([
+    return uniq(
+      flatten([
         ...(this.props.itemTypes ?? []),
         ...(this.getActions().includes("catalog")
           ? this.props.catalogs?.map((catalog) => catalog.itemTypes ?? []) ?? []
@@ -238,7 +240,7 @@ export class AddonClass extends BaseAddonClass {
   }
 
   public clone() {
-    return new AddonClass(_.cloneDeep(this.props), _.cloneDeep(this.infos));
+    return new AddonClass(cloneDeep(this.props), cloneDeep(this.infos));
   }
 
   public isImmutable() {
@@ -303,9 +305,9 @@ export class AddonClass extends BaseAddonClass {
       "content-type": "application/json; charset=utf-8",
     };
     if (settings.useLegacyAddonRoutes) {
-      headers["watched-sig"] = options.signature;
+      headers["watched-sig"] = options.signature ?? "";
     } else {
-      headers["mediaurl-signature"] = options.signature;
+      headers["mediaurl-signature"] = options.signature ?? "";
     }
 
     let url: string;

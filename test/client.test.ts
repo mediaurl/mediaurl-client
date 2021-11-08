@@ -2,6 +2,10 @@ import { CatalogResponse, DirectoryItem, PlayableItem } from "@mediaurl/schema";
 import { BaseAddonClass } from "../src/addon";
 import { Manager } from "../src/manager";
 import { ItemHelper } from "../src/types";
+import fetch from "node-fetch";
+import { setFetchFn } from "../src/utils/fetch";
+
+setFetchFn(<any>fetch);
 
 const loadDefaults = {
   onError: (props, error: Error) => {
@@ -25,7 +29,7 @@ describe("client", () => {
     new Manager({
       language: "en",
       region: "UK",
-      endpointTestTimeout: 5000,
+      endpointTestTimeout: 1000,
       loadNextTimeout: 2000,
     });
 
@@ -58,7 +62,7 @@ describe("client", () => {
         discover: true,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(9);
+    expect(manager.getAddons().length).toBe(11);
   });
 
   test("test server, discover depth 1", async () => {
@@ -70,7 +74,7 @@ describe("client", () => {
         maxDepth: 1,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(7);
+    expect(manager.getAddons().length).toBe(6);
   });
 
   test("test server, discover depth 2", async () => {
@@ -82,7 +86,7 @@ describe("client", () => {
         maxDepth: 2,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(9);
+    expect(manager.getAddons().length).toBe(11);
   });
 
   test("test server, discover depth 3", async () => {
@@ -94,7 +98,7 @@ describe("client", () => {
         maxDepth: 3,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(26);
+    expect(manager.getAddons().length).toBe(22);
   });
 
   test("xample-worker2 url", async () => {
@@ -164,7 +168,7 @@ describe("client", () => {
         discover: true,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(3);
+    expect(manager.getAddons().length).toBe(8);
     manager.getAddonOrThrow("xample-bundle1");
     expect(() => manager.getAddonOrThrow("xample-worker1")).toThrow();
   });
@@ -178,7 +182,7 @@ describe("client", () => {
         maxDepth: 3,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(24);
+    expect(manager.getAddons().length).toBe(8);
     manager.getAddonOrThrow("xample-bundle1");
     manager.getAddonOrThrow("xample-worker1");
   });
@@ -191,9 +195,9 @@ describe("client", () => {
         discover: false,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(5);
+    expect(manager.getAddons().length).toBe(4);
     expect(manager.getRootAddons().length).toBe(1);
-    expect(manager.getChildAddons().length).toBe(4);
+    expect(manager.getChildAddons().length).toBe(3);
 
     const availableAddonProps = manager.getAddons().map((a) => a.props);
     manager.clear();
@@ -205,17 +209,17 @@ describe("client", () => {
         availableAddonProps,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(5);
+    expect(manager.getAddons().length).toBe(4);
     expect(manager.getRootAddons().length).toBe(1);
-    expect(manager.getChildAddons().length).toBe(4);
+    expect(manager.getChildAddons().length).toBe(3);
 
     manager.getAddonOrThrow("watchup-bundle");
     expect(manager.getAddon("watchup-bundle")?.infos.requirePath).toMatchObject(
       []
     );
-    expect(manager.getAddon("mediaurl-repo")?.infos.requirePath).toMatchObject([
-      "watchup-bundle",
-    ]);
+    // expect(manager.getAddon("mediaurl-repo")?.infos.requirePath).toMatchObject([
+    //   "watchup-bundle",
+    // ]);
     expect(manager.getAddon("tmdb")?.infos.requirePath).toMatchObject([
       "watchup-bundle",
     ]);
@@ -229,13 +233,13 @@ describe("client", () => {
         discover: false,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(5);
+    expect(manager.getAddons().length).toBe(4);
     manager.getAddonOrThrow("watchup-bundle");
     expect(manager.getCatalog("tmdb", "movie")?.id).toBe("movie");
     expect(manager.getCatalog("tmdb", "series")?.id).toBe("series");
 
     expect(manager.getRootAddons().length).toBe(1);
-    expect(manager.getChildAddons().length).toBe(4);
+    expect(manager.getChildAddons().length).toBe(3);
 
     expect(manager.getDashboards().length).toBe(4);
 
@@ -277,7 +281,7 @@ describe("client", () => {
         discover: false,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(3);
+    expect(manager.getAddons().length).toBe(2);
     manager.getAddonOrThrow("ted-bundle");
 
     const dashboard = manager
@@ -480,11 +484,11 @@ describe("client", () => {
         discover: false,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(5);
+    expect(manager.getAddons().length).toBe(4);
     manager.getAddonOrThrow("arte");
     manager.getAddonOrThrow("zdf-mediathek");
 
-    expect(manager.getDashboards().length).toBeGreaterThanOrEqual(31);
+    expect(manager.getDashboards().length).toBeGreaterThanOrEqual(27);
     // console.log(JSON.stringify(manager.getDashboards(), null, 2));
 
     const todo = [
@@ -571,9 +575,9 @@ describe("client", () => {
         discover: false,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(6);
+    expect(manager.getAddons().length).toBe(5);
     expect(manager.getCatalogs().length).toBe(4);
-    expect(manager.getDashboards().length).toBeGreaterThanOrEqual(31);
+    expect(manager.getDashboards().length).toBeGreaterThanOrEqual(27);
     manager.getAddonOrThrow("arte");
     manager.getAddonOrThrow("zdf-mediathek");
     manager.getAddonOrThrow("test");
@@ -597,20 +601,21 @@ describe("client", () => {
         .sort()
     ).toMatchObject(
       [
-        "mediaurl-repo",
         "test",
         "tmdb",
         "tubitv.com",
+        "wer-streamt-es",
         "xample-bundle1",
-        "xample-repo1",
+        // "xample-repo1",
         "xample-worker-iptv",
         "xample-worker1",
         "xample-worker2",
+        "youtube-resolver",
       ].sort()
     );
     expect(manager.getAddons().length).toBe(9);
     expect(manager.getCatalogs().length).toBe(8);
-    expect(manager.getDashboards().length).toBeGreaterThanOrEqual(8);
+    expect(manager.getDashboards().length).toBeGreaterThanOrEqual(5);
     manager.getAddonOrThrow("xample-bundle1");
     manager.getAddonOrThrow("tmdb");
     manager.getAddonOrThrow("test");
@@ -642,8 +647,10 @@ describe("client", () => {
         availableAddonProps: manager.getAddons().map((addon) => addon.props),
       })
     ).resolves.toBeUndefined();
-    expect(m2.getAddons().length).toBe(5);
+    expect(m2.getAddons().length).toBe(4);
     m2.getAddonOrThrow("tmdb");
+    m2.getAddonOrThrow("watchup-bundle");
+    m2.getAddonOrThrow("wer-streamt-es");
     m2.getAddonOrThrow("youtube-resolver");
     console.log("t2", Date.now() - t2);
   });
@@ -657,7 +664,7 @@ describe("client", () => {
             endpoints: [
               "https://www.mediaurl.io/test/xample-worker-iptv",
               "https://example.com/doesnotexists",
-              "https://1.2.3.4/doesnotexists",
+              "https://1.1.1.1/doesnotexists",
             ],
           },
         ],
@@ -687,7 +694,7 @@ describe("client", () => {
         discover: true,
       })
     ).resolves.toBeUndefined();
-    expect(m1.getAddons().length).toBeGreaterThanOrEqual(23);
+    expect(m1.getAddons().length).toBeGreaterThanOrEqual(21);
     const d1 = Date.now() - t1;
 
     console.log("---");
@@ -702,7 +709,7 @@ describe("client", () => {
         availableAddonProps: m1.getAddons().map((addon) => addon.props),
       })
     ).resolves.toBeUndefined();
-    expect(m2.getAddons().length).toBeGreaterThanOrEqual(24);
+    expect(m2.getAddons().length).toBeGreaterThanOrEqual(22);
     const d2 = Date.now() - t2;
 
     expect(
@@ -738,7 +745,7 @@ describe("client", () => {
           discover: true,
         })
       ).resolves.toBeUndefined();
-      expect(m1.getAddons().length).toBeGreaterThanOrEqual(16);
+      expect(m1.getAddons().length).toBeGreaterThanOrEqual(14);
     }
   });
 
@@ -757,5 +764,30 @@ describe("client", () => {
     for (const d of m1.getDashboards()) {
       expect(d.name).toBeTruthy();
     }
+  });
+
+  test("mixed addon", async () => {
+    const m1 = newManager();
+    await expect(
+      m1.load({
+        ...loadDefaults,
+        inputs: [{ endpoints: ["https://www.mediaurl.io/test/xample-mixed1"] }],
+        discover: false,
+      })
+    ).resolves.toBeUndefined();
+    expect(m1.getAddons().length).toBe(2);
+
+    const a = m1.getAddonOrThrow("xample-mixed1");
+    expect(a.getCatalogs().length).toBe(1);
+    expect(a.getDashboards().length).toBe(1);
+
+    expect(m1.getCatalogs().length).toBe(1);
+    expect(m1.getDashboards().length).toBe(1);
+
+    const directory = m1.getDashboards()[0];
+    expect(directory).toBeTruthy();
+
+    const r1 = await m1.callDirectory({ directory });
+    expect(r1.items.length).toBe(3);
   });
 });
