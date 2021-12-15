@@ -2,7 +2,6 @@ import {
   Addon,
   AddonActions,
   AddonResponse,
-  CatalogOptions,
   CatalogRequest,
   CatalogResponse,
   getClientValidators,
@@ -41,6 +40,8 @@ const migrations: Migrations = {
       let any: any = addon;
 
       if (isAddonLegacy(addon)) {
+        delete any.poster;
+
         if (any.flags) {
           Object.assign(any, any.flags);
           delete any.flags;
@@ -60,8 +61,8 @@ const migrations: Migrations = {
 
         if (any.requestArgs) {
           if (!any.triggers?.length) any.triggers = <any>any.requestArgs;
-          delete any.requestArgs;
         }
+        delete any.requestArgs;
 
         if (any.requirements) {
           any.requirements = any.requirements.map((req) =>
@@ -70,24 +71,21 @@ const migrations: Migrations = {
         }
 
         if (any.actions) {
-          const i = any.actions.indexOf(<any>"directory");
+          let i = any.actions.indexOf(<any>"directory");
           if (i !== -1) {
             any.actions.splice(i, 1, "catalog");
             any.catalogs = <any>any.rootDirectories;
             delete any.rootDirectories;
           }
+          i = any.actions.indexOf("iptv");
+          if (i !== -1) {
+            any.splice(i, 1);
+          }
         }
 
         if (any.defaultDirectoryOptions || any.defaultDirectoryFeatures) {
           if (!any.catalogs?.length) {
-            any.catalogs = [
-              {
-                addonId: any.id,
-                catalogId: "",
-                id: "",
-                key: `${any.key}/`,
-              },
-            ];
+            any.catalogs = [{}];
           }
           any.catalogs = any.catalogs.map((catalog) => ({
             ...catalog,

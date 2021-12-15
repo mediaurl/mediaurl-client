@@ -839,10 +839,7 @@ export class Manager {
       typeof pageInput === "string"
         ? this.getPages().find((p) => p.id === pageInput)
         : pageInput;
-    if (!page) {
-      console.warn(`Page "${pageInput}" not found`);
-      return [];
-    }
+    if (!page) return [];
 
     const result: DashboardItem[] = [];
     const dashboards = [...(page.dashboards ?? [])];

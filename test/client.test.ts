@@ -62,7 +62,7 @@ describe("client", () => {
         discover: true,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(12);
+    expect(manager.getAddons().length).toBe(10);
   });
 
   test("test server, discover depth 1", async () => {
@@ -74,7 +74,7 @@ describe("client", () => {
         maxDepth: 1,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(7);
+    expect(manager.getAddons().length).toBe(5);
   });
 
   test("test server, discover depth 2", async () => {
@@ -86,7 +86,7 @@ describe("client", () => {
         maxDepth: 2,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(12);
+    expect(manager.getAddons().length).toBe(10);
   });
 
   test("test server, discover depth 3", async () => {
@@ -98,7 +98,7 @@ describe("client", () => {
         maxDepth: 3,
       })
     ).resolves.toBeUndefined();
-    expect(manager.getAddons().length).toBe(23);
+    expect(manager.getAddons().length).toBe(21);
   });
 
   test("xample-worker2 url", async () => {
@@ -455,7 +455,7 @@ describe("client", () => {
           expect(r2.items.length).toBeGreaterThanOrEqual(500);
         },
       },
-      { id: "meist-gesehen-100", items: 25 },
+      // { id: "meist-gesehen-100", items: 25 },
       { id: "categories", items: 20 },
       { id: "recently-added", items: 20 },
     ];
@@ -509,7 +509,7 @@ describe("client", () => {
           expect(r2.items.length).toBeGreaterThanOrEqual(500);
         },
       },
-      { id: "meist-gesehen-100", items: 25 },
+      // { id: "meist-gesehen-100", items: 25 },
       { id: "categories", items: 20 },
       { id: "recently-added", items: 20 },
     ];
@@ -654,6 +654,9 @@ describe("client", () => {
     m2.getAddonOrThrow("wer-streamt-es");
     m2.getAddonOrThrow("youtube-resolver");
     console.log("t2", Date.now() - t2);
+
+    expect(m2.getPages().length).toBe(1);
+    expect(m2.getDashboards().length).toBe(4);
   });
 
   test("xample-worker-iptv", async () => {
@@ -710,7 +713,7 @@ describe("client", () => {
         availableAddonProps: m1.getAddons().map((addon) => addon.props),
       })
     ).resolves.toBeUndefined();
-    expect(m2.getAddons().length).toBeGreaterThanOrEqual(22);
+    expect(m2.getAddons().length).toBeGreaterThanOrEqual(21);
     const d2 = Date.now() - t2;
 
     expect(
