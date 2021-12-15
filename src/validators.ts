@@ -35,77 +35,77 @@ type Migrations = Record<
 const migrations: Migrations = {
   addon: {
     response: (data: AddonResponse, callingAddon) => {
-      if (data.type === "server") return { data };
+      if ((<any>data).type === "server") return { data };
 
       let addon = <Addon>data;
+      let any: any = addon;
 
       if (isAddonLegacy(addon)) {
-        if (addon.flags) {
-          addon = {
-            ...addon,
-            ...(<any>addon.flags),
-          };
-          delete addon.flags;
+        if (any.flags) {
+          Object.assign(any, any.flags);
+          delete any.flags;
         }
 
-        if ((<any>addon).metadata?.url) {
-          if (!addon.endpoints) addon.endpoints = [];
-          addon.endpoints.push((<any>addon).metadata.url);
+        if (any.metadata?.url) {
+          if (!any.endpoints) any.endpoints = [];
+          any.endpoints.push(any.metadata.url);
+        }
+        delete any.metadata;
+
+        if (any.type === "repository") {
+          if (!any.actions) any.actions = [];
+          any._isLegacyRepositoryAddon = true;
+        }
+        delete any.type;
+
+        if (any.requestArgs) {
+          if (!any.triggers?.length) any.triggers = <any>any.requestArgs;
+          delete any.requestArgs;
         }
 
-        if (addon.type === "repository") {
-          if (!addon.actions) addon.actions = [];
-          addon._isLegacyRepositoryAddon = true;
-        }
-
-        if (addon.requestArgs) {
-          if (!addon.triggers?.length) addon.triggers = <any>addon.requestArgs;
-          delete addon.requestArgs;
-        }
-
-        if (addon.requirements) {
-          addon.requirements = addon.requirements.map((req) =>
+        if (any.requirements) {
+          any.requirements = any.requirements.map((req) =>
             typeof req === "string" ? req : (<any>req).url ?? (<any>req).id
           );
         }
 
-        if (addon.actions) {
-          const i = addon.actions.indexOf(<any>"directory");
+        if (any.actions) {
+          const i = any.actions.indexOf(<any>"directory");
           if (i !== -1) {
-            addon.actions.splice(i, 1, "catalog");
-            addon.catalogs = <any>addon.rootDirectories;
-            delete addon.rootDirectories;
+            any.actions.splice(i, 1, "catalog");
+            any.catalogs = <any>any.rootDirectories;
+            delete any.rootDirectories;
           }
         }
 
-        if (addon.defaultDirectoryOptions || addon.defaultDirectoryFeatures) {
-          if (!addon.catalogs?.length) {
-            addon.catalogs = [
+        if (any.defaultDirectoryOptions || any.defaultDirectoryFeatures) {
+          if (!any.catalogs?.length) {
+            any.catalogs = [
               {
-                addonId: addon.id,
+                addonId: any.id,
                 catalogId: "",
                 id: "",
-                key: `${addon.key}/`,
+                key: `${any.key}/`,
               },
             ];
           }
-          addon.catalogs = addon.catalogs.map((catalog) => ({
+          any.catalogs = any.catalogs.map((catalog) => ({
             ...catalog,
             options: {
-              ...(<any>addon.defaultDirectoryOptions),
+              ...(<any>any.defaultDirectoryOptions),
               ...catalog.options,
             },
             features: {
-              ...(<any>addon.defaultDirectoryFeatures),
+              ...(<any>any.defaultDirectoryFeatures),
               ...catalog.features,
             },
           }));
-          delete addon.defaultDirectoryOptions;
-          delete addon.defaultDirectoryFeatures;
+          delete any.defaultDirectoryOptions;
+          delete any.defaultDirectoryFeatures;
         }
 
-        if (addon.dashboards) {
-          addon.dashboards = addon.dashboards.map((dashboard) => {
+        if (any.dashboards) {
+          any.dashboards = any.dashboards.map((dashboard) => {
             dashboard.catalogId = <any>dashboard.rootId;
             delete dashboard.rootId;
 
@@ -131,10 +131,12 @@ const migrations: Migrations = {
             return dashboard;
           });
         }
-
-        delete addon.type;
-        delete addon.metadata;
       }
+
+      if (!any.pages && any.dashboards) {
+        any.pages = [{ dashboards: any.dashboards }];
+      }
+      delete any.dashboards;
 
       return { data: addon };
     },
@@ -166,6 +168,7 @@ const migrations: Migrations = {
     },
     response: (data: CatalogResponse, callingAddon) => {
       if (isAddonLegacy(callingAddon)) {
+        const any: any = data;
         if (data.items) {
           data.items = data.items.map((item) => {
             item = applyMigration("item", "response", item, callingAddon).data;
@@ -176,8 +179,8 @@ const migrations: Migrations = {
             return item;
           });
         }
-        data.catalogId = <any>data.rootId;
-        delete data.rootId;
+        data.catalogId = <string>any.rootId;
+        delete any.rootId;
       }
       return { data };
     },

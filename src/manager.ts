@@ -6,9 +6,9 @@ import {
   CatalogResponse,
   Country,
   DashboardItem,
-  GenericId,
   Language,
   MainItem,
+  Page,
   PlayableItem,
   ResolvedUrl,
   Source,
@@ -95,8 +95,8 @@ type CallDirectoryProps = BaseCallProps & {
 
 type CallCatalogProps = BaseCallProps & {
   addonId: string;
-  catalogId: GenericId;
-  directoryId: GenericId;
+  catalogId: string;
+  directoryId: string;
   args: CatalogArguments;
 };
 
@@ -465,7 +465,10 @@ export class Manager {
       }
 
       // Legacy, load repository
-      if (addon.props._isLegacyRepositoryAddon && !ignore.has(addon.props.id)) {
+      if (
+        (<any>addon.props)._isLegacyRepositoryAddon &&
+        !ignore.has(addon.props.id)
+      ) {
         if (!discover || requirePath.length < maxDepth) {
           spawn(
             `repo-${addon.props.id}`,
@@ -769,7 +772,7 @@ export class Manager {
   /**
    * Get catalog by addon ID and catalog ID as `DashboardItem`.
    */
-  public getCatalog(addonId: string, catalogId: GenericId) {
+  public getCatalog(addonId: string, catalogId: string) {
     const addon = this.getAddon(addonId);
     return addon?.getCatalog(catalogId) ?? null;
   }
@@ -785,16 +788,16 @@ export class Manager {
   }
 
   /**
-   * Returns all dashboards
+   * Returns all pages
    */
-  public getDashboards() {
+  public getPages(): Page[] {
     let addons: BaseAddonClass[] = [];
     const iter = (addon: BaseAddonClass) => {
-      const dashboards = addon.getDashboards().length;
-      if (dashboards > 0 && !addons.includes(addon)) {
+      const pages = addon.getPages().length;
+      if (pages > 0 && !addons.includes(addon)) {
         addons.push(addon);
       }
-      if (dashboards === 0 || addon.infos.requirePath.length > 0)
+      if (pages === 0 || addon.infos.requirePath.length > 0)
         for (const req of addon.getConvertedRequirements()) {
           for (const other of this.addons) {
             if (!addons.includes(other) && other.matchesRequirement(req)) {
@@ -808,56 +811,89 @@ export class Manager {
     }
     if (addons.length === 0) addons = this.addons;
 
-    const result: DashboardItem[] = [];
+    const result: Page[] = [];
     for (const addon of addons) {
       if (!this.miscOptions.adult && addon.props.adult) continue;
-      for (let dashboard of addon.getDashboards()) {
-        if (result.some((d) => d.key === dashboard.key)) {
-          console.warn(
-            `Skipping duplicate dashboard '${addon.props.id}/${dashboard.id}'`
-          );
-          continue;
+      for (const page of addon.getPages()) {
+        const dashboards = page.dashboards ?? [];
+        const other = result.find((p) => p.id === page.id);
+        if (other) {
+          other.dashboards = [...(other.dashboards ?? []), ...dashboards];
+        } else {
+          result.push({
+            ...page,
+            dashboards,
+          });
         }
-        const dashboardAddon = dashboard.addonId
-          ? this.getAddon(dashboard.addonId)
-          : addon;
-        if (!dashboardAddon) {
-          // Don't return catalogs where no addon was found
-          console.warn(
-            `Addon '${dashboard.addonId}' for dashboard '${addon.props.id}/${dashboard.id}' not found`
-          );
-          continue;
-        }
-
-        const catalog = dashboardAddon.getCatalog(dashboard.catalogId ?? "");
-        if (!catalog) {
-          // Don't return dashboards where no addon was found
-          console.warn(
-            `Catalog '${dashboardAddon.props.id}/${
-              dashboard.catalogId ?? ""
-            }' for dashboard '${addon.props.id}/${dashboard.id}' not found.`
-          );
-          // continue;
-        } else if (!this.miscOptions.adult && catalog.adult) {
-          continue;
-        }
-
-        // Merge the dashboard of the other addon, if it exists
-        const otherDashboard =
-          dashboardAddon === addon
-            ? null
-            : dashboardAddon.getDashboards().find((d) => d.id === dashboard.id);
-        dashboard = {
-          ...otherDashboard,
-          ...dashboard,
-          name: dashboard.name ?? otherDashboard?.name ?? catalog?.name,
-          options:
-            dashboard.options ?? otherDashboard?.options ?? catalog?.options,
-          features:
-            dashboard.features ?? otherDashboard?.features ?? catalog?.features,
-        };
-        result.push(dashboard);
       }
+    }
+    return result;
+  }
+
+  /**
+   * Returns all dashboards for a page.
+   * Use page ID or page object as parameter.
+   */
+  public getDashboards(pageInput: Page | string = "") {
+    const page =
+      typeof pageInput === "string"
+        ? this.getPages().find((p) => p.id === pageInput)
+        : pageInput;
+    if (!page) {
+      console.warn(`Page "${pageInput}" not found`);
+      return [];
+    }
+
+    const result: DashboardItem[] = [];
+    const dashboards = [...(page.dashboards ?? [])];
+    for (let i = 0; i < dashboards.length; i++) {
+      const item = page.dashboards![i];
+
+      const addon = this.getAddon(item.addonId!);
+      if (!addon) {
+        console.warn(
+          `Addon "${item.addonId}" for item in page "${page.key}" not found`
+        );
+        continue;
+      }
+
+      if (item.type === "copyItems") {
+        const otherPage = addon.getPages().find((p) => p.id === item.pageId);
+        if (!otherPage) {
+          console.warn(
+            `Page "${item.addonId}/${item.pageId}" for item in page "${page.key}" not found`
+          );
+        } else {
+          dashboards.splice(i, 1, ...otherPage.dashboards!);
+          i--;
+        }
+        continue;
+      }
+
+      const dashboard = <DashboardItem>item;
+      const catalog = addon.getCatalog(dashboard.catalogId!);
+      if (!catalog) {
+        console.warn(
+          `Catalog "${dashboard.catalogId}" for dashboard "${dashboard.key}" not found`
+        );
+        continue;
+      }
+
+      const otherPage = addon.getPages().find((p) => p.id === item.pageId);
+      const otherDashboard =
+        <DashboardItem>(
+          otherPage?.dashboards?.find((j) => (<any>j).id === dashboard.id)
+        ) ?? dashboard;
+
+      result.push({
+        ...otherDashboard,
+        ...dashboard,
+        name: dashboard.name ?? otherDashboard?.name ?? catalog?.name,
+        options:
+          dashboard.options ?? otherDashboard?.options ?? catalog?.options,
+        features:
+          dashboard.features ?? otherDashboard?.features ?? catalog?.features,
+      });
     }
     return result;
   }

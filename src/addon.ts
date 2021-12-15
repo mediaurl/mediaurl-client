@@ -4,9 +4,9 @@ import {
   AddonRequest,
   Catalog,
   DashboardItem,
-  GenericId,
   getClientValidators,
   ItemTypes,
+  Page,
   TaskRequest,
   TaskResponse,
 } from "@mediaurl/schema";
@@ -55,7 +55,7 @@ export abstract class BaseAddonClass {
   }
 
   public isLegacy() {
-    return this.props._isLegacyRepositoryAddon
+    return (<any>this.props)._isLegacyRepositoryAddon
       ? true
       : !this.isSdkNewerThan("2.0.0-alpha.0");
   }
@@ -183,7 +183,7 @@ export abstract class BaseAddonClass {
     ].map((catalog) => this.convertCatalog(catalog));
   }
 
-  public getCatalog(id: GenericId) {
+  public getCatalog(id: string) {
     const catalogs = this.props.catalogs?.length
       ? this.props.catalogs
       : [this.createDefaultCatalog()];
@@ -199,27 +199,36 @@ export abstract class BaseAddonClass {
     return c ? this.convertCatalog(c) : null;
   }
 
-  public getDashboards(): DashboardItem[] {
-    const catalogs = this.getActions().includes("catalog")
-      ? this.getCatalogs()
-      : [];
-    return [
-      ...(this.props.dashboards ?? []),
-      ...(this.props.dashboards?.length ? [] : catalogs),
-    ].map((dashboard) => {
-      const addonId = dashboard.addonId ?? this.props.id;
-      const catalogId = dashboard.catalogId ?? "";
-      const id = dashboard.id ?? "";
-      const catalog = catalogs.find((c) => c.id === catalogId);
-      return {
-        ...dashboard,
-        addonId,
-        catalogId,
-        id,
-        key: `${addonId}/${catalogId}/${id}`,
-        options: dashboard.options ?? catalog?.options,
-        features: dashboard.features ?? catalog?.features,
+  public getPages() {
+    const pages = [...(this.props.pages ?? [])];
+    if (pages.length === 0 && this.getActions().includes("catalog")) {
+      pages.push(<Page>{ dashboards: this.getCatalogs() });
+    }
+    return pages.map((page) => {
+      page = {
+        ...page,
+        id: page.id ?? "",
+        key: `${this.props.id}/${page.id ?? ""}`,
       };
+      page.dashboards = (page.dashboards ?? []).map((item) => {
+        if (item.type === "copyItems") {
+          return {
+            ...item,
+            addonId: item.addonId || this.props.id,
+            pageId: item.pageId || "",
+          };
+        }
+
+        const dashboard = <DashboardItem>item;
+        return {
+          ...dashboard,
+          addonId: dashboard.addonId ?? this.props.id,
+          pageId: dashboard.pageId ?? page.id,
+          id: dashboard.id ?? "",
+          key: `${page.key}/${dashboard.id ?? ""}`,
+        };
+      });
+      return page;
     });
   }
 
@@ -234,7 +243,7 @@ export class AddonClass extends BaseAddonClass {
   constructor(props: Addon, infos: AddonInfos) {
     super(props, infos);
     this.allowedActions = ["selftest", "addon", ...(props.actions ?? [])];
-    if (props._isLegacyRepositoryAddon) {
+    if ((<any>props)._isLegacyRepositoryAddon) {
       this.allowedActions.push(<any>"repository");
     }
   }

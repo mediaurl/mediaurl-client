@@ -1,7 +1,6 @@
 import {
   AddonResourceActions,
   CaptchaTypes,
-  GenericId,
   ItemTypes,
   MainItem,
   PlayableItem,
@@ -22,7 +21,7 @@ type Params = {
 type Result = {
   addon: BaseAddonClass;
   meta: {
-    ids: Record<string, GenericId>;
+    ids: Record<string, string>;
     [k: string]: any;
   };
 };

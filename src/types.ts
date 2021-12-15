@@ -9,9 +9,6 @@ import {
   CatalogOptions,
   CatalogRequest,
   CatalogResponse,
-  GenericId,
-  IptvRequest,
-  IptvResponse,
   ItemImages,
   ItemRequest,
   ItemResponse,
@@ -54,11 +51,11 @@ interface ClientCatalogPatch {
   /**
    * The `addonId` field only exists on `@mediaurl/client` responses.
    */
-  catalogId?: GenericId;
+  catalogId?: string;
   /**
    * The `addonId` field only exists on `@mediaurl/client` responses.
    */
-  // id?: GenericId;
+  // id?: string;
 }
 
 interface ClientSourcePatch {
@@ -77,6 +74,12 @@ interface ClientSourcePatch {
 }
 
 declare module "@mediaurl/schema" {
+  interface Addon {
+    sdkVersion: string;
+  }
+
+  interface Page extends ClientKeyPatch {}
+
   interface Catalog extends ClientKeyPatch, ClientCatalogPatch {}
   interface BaseDirectoryItem extends ClientKeyPatch {}
 
@@ -90,8 +93,8 @@ declare module "@mediaurl/schema" {
 
 export type DirectoryInterface = {
   addonId?: string;
-  catalogId?: GenericId;
-  id?: GenericId;
+  catalogId?: string;
+  id?: string;
   args?: CatalogArguments;
   items?: SimilarItem[];
   options?: CatalogOptions;

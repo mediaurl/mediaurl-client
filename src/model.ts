@@ -105,7 +105,7 @@ export const createItem = (
       ...(<PlayableItem>newItem).ids,
     };
     if (item.type === "iptv" && Object.keys(item.ids).length === 0) {
-      item.ids.urlId = djb2(<string>(<IptvItem>newItem).url);
+      item.ids.urlId = String(djb2(<string>(<IptvItem>newItem).url));
     }
     if (addon && (<PlayableItem>item).ids.id) {
       item.ids[addon.id] = (<PlayableItem>item).ids.id;
@@ -238,7 +238,7 @@ export const createSource = (
     ...cloneDeep(source),
   };
   if (!newSource.type) newSource.type = "url";
-  if (!newSource.id) newSource.id = djb2(<string>newSource.url);
+  if (!newSource.id) newSource.id = String(djb2(<string>newSource.url));
   if (!newSource.addonId) newSource.addonId = addon?.id ?? "";
   if (!newSource.key) newSource.key = `${newSource.addonId}/${newSource.id}`;
   if (addon) {
@@ -252,7 +252,7 @@ export const createSubtitle = (subtitle: Subtitle) => {
   return getNewValue(
     {
       ...subtitle,
-      id: subtitle.id ?? djb2(subtitle.url),
+      id: subtitle.id ?? String(djb2(subtitle.url)),
     },
     subtitle
   );

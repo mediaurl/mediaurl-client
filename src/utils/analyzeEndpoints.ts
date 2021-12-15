@@ -141,6 +141,7 @@ class EndpointFetcher {
       } catch (error) {
         clearTimeout(t);
         reject(error);
+        // console.log(error);
       }
     });
   }

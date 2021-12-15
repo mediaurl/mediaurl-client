@@ -12,7 +12,7 @@ export type AddonResponseData = {
 };
 
 export const isServerResponse = (props: AddonResponse) =>
-  typeof props === "object" && props.type === "server";
+  typeof props === "object" && (<any>props).type === "server";
 
 export const isAddonResponse = (props: AddonResponse) =>
   props &&
