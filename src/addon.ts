@@ -30,6 +30,8 @@ import { analyzeEndpoints } from "./utils/analyzeEndpoints";
 import { fetch } from "./utils/fetch";
 import { validateAction } from "./validators";
 
+const clientVersion: string = require("../package.json").version;
+
 export abstract class BaseAddonClass {
   public readonly props: Addon;
   public readonly infos: AddonInfos;
@@ -151,6 +153,7 @@ export abstract class BaseAddonClass {
     const id = catalog.id ?? "";
     return {
       ...catalog,
+      type: "directory",
       addonId: catalog.addonId ?? this.props.id,
       catalogId: id,
       id,
@@ -158,7 +161,8 @@ export abstract class BaseAddonClass {
       name: catalog.name ?? this.props.name,
       itemTypes: catalog.itemTypes ?? this.getItemTypes(),
       options: {
-        imageShape: "regular",
+        shape: "portrait",
+        size: "normal",
         displayName: true,
         ...catalog.options,
       },
@@ -167,6 +171,7 @@ export abstract class BaseAddonClass {
 
   protected createDefaultCatalog(): Catalog {
     return {
+      type: "directory",
       addonId: this.props.id,
       catalogId: "",
       id: "",
@@ -211,22 +216,31 @@ export abstract class BaseAddonClass {
         key: `${this.props.id}/${page.id ?? ""}`,
       };
       page.dashboards = (page.dashboards ?? []).map((item) => {
-        if (item.type === "copyItems") {
-          return {
-            ...item,
-            addonId: item.addonId || this.props.id,
-            pageId: item.pageId || "",
-          };
+        switch (item.type) {
+          default:
+            // @ts-ignore
+            throw new Error(`Unknown dashboard item type: ${item.type}`);
+          case "copyItems":
+            return {
+              ...item,
+              addonId: item.addonId || this.props.id,
+              pageId: item.pageId || "",
+            };
+          case "channel":
+          case "iptv":
+          case "movie":
+          case "series":
+          case "unknown":
+            return item;
+          case "directory":
+            return {
+              ...item,
+              addonId: item.addonId ?? this.props.id,
+              pageId: item.pageId ?? page.id,
+              id: item.id ?? "",
+              key: `${page.key}/${item.id ?? ""}`,
+            };
         }
-
-        const dashboard = <DashboardItem>item;
-        return {
-          ...dashboard,
-          addonId: dashboard.addonId ?? this.props.id,
-          pageId: dashboard.pageId ?? page.id,
-          id: dashboard.id ?? "",
-          key: `${page.key}/${dashboard.id ?? ""}`,
-        };
       });
       return page;
     });
@@ -305,6 +319,9 @@ export class AddonClass extends BaseAddonClass {
         `Addon ${this.props.id} does not have the action "${action}`
       );
     }
+
+    input.clientVersion = clientVersion;
+
     const validated = validateAction(action, "request", input, this.props);
     const outAction = <string>validated.action;
     input = validated.data;

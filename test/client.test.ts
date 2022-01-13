@@ -1,8 +1,13 @@
-import { CatalogResponse, DirectoryItem, PlayableItem } from "@mediaurl/schema";
+import {
+  BaseDirectoryItem,
+  CatalogResponse,
+  DirectoryItem,
+  PlayableItem,
+} from "@mediaurl/schema";
+import fetch from "node-fetch";
 import { BaseAddonClass } from "../src/addon";
 import { Manager } from "../src/manager";
 import { ItemHelper } from "../src/types";
-import fetch from "node-fetch";
 import { setFetchFn } from "../src/utils/fetch";
 
 setFetchFn(<any>fetch);
@@ -31,6 +36,8 @@ describe("client", () => {
       region: "UK",
       endpointTestTimeout: 1000,
       loadNextTimeout: 2000,
+      signature:
+        "eyJkYXRhIjoie1xuICBcInRpbWVcIjogMTY0MjA3NTM1NDAwMCxcbiAgXCJ2YWxpZFVudGlsXCI6IDE2NDIxNjE3NTQwMDAsXG4gIFwidXNlclwiOiBcImZvb2JhclwiLFxuICBcInN0YXR1c1wiOiBcImd1ZXN0XCIsXG4gIFwiaXBzXCI6IFtdLFxuICBcImFwcFwiOiB7XG4gICAgXCJuYW1lXCI6IFwiZm9vXCIsXG4gICAgXCJ2ZXJzaW9uXCI6IFwiMS4yLjNcIixcbiAgICBcInBsYXRmb3JtXCI6IFwidGVzdFwiLFxuICAgIFwib2tcIjogdHJ1ZVxuICB9XG59Iiwic2lnbmF0dXJlIjoiTEVsUTBSV080VjBiNHhPOGtoY3ZpMlZkbEJQOWdFUVBhU0JTYzVHZ2JneDg5ZTBRLzhUN2ZmaHNaRW11djNLNGZHZW1janZRWERnODQ1YVZ1R1UxaUtVKzVYeUZsZ2dhSnJncDZwZE5sSVQ4b0E5OEl5M2dKNlpTbVJmRjhpbmZmVFZLYVlCRmVYb3RGRStDQjFZMTJwbmlzT2RYSWZya3M4OE0yVUJhU3FjPSJ9",
     });
 
   let manager: Manager;
@@ -155,7 +162,10 @@ describe("client", () => {
     expect(
       manager
         .getDashboards()
-        .map((dashboard) => manager.getCatalogForDirectory(dashboard))
+        .filter((dashboard) => dashboard.type === "directory")
+        .map((dashboard) =>
+          manager.getCatalogForDirectory(dashboard as BaseDirectoryItem)
+        )
         .filter((catalog) => catalog).length
     ).toBe(8);
   });
@@ -245,7 +255,7 @@ describe("client", () => {
 
     const directory = manager
       .getDashboards()
-      .find((d) => d.id === "movie/trending")!;
+      .find((d) => d.id === "movie/trending") as BaseDirectoryItem;
     expect(directory).toBeTruthy();
     directory.args = {
       ...directory.args,
@@ -286,7 +296,7 @@ describe("client", () => {
 
     const dashboard = manager
       .getDashboards()
-      .find((d) => d.id === "ted-Science")!;
+      .find((d) => d.id === "ted-Science") as BaseDirectoryItem;
     expect(dashboard).toBeTruthy();
     expect(dashboard.options).toBeTruthy();
     expect(dashboard.features).toBeTruthy();
@@ -386,12 +396,16 @@ describe("client", () => {
 
     expect(manager.getDashboards().length).toBe(4);
 
-    const d1 = manager.getDashboards().find((d) => d.id === "movie/popular")!;
+    const d1 = manager
+      .getDashboards()
+      .find((d) => d.id === "movie/popular") as BaseDirectoryItem;
     expect(d1).toBeTruthy();
     const r1 = await manager.callDirectory({ directory: d1 });
     expect(r1.items.length).toBe(60);
 
-    const d2 = manager.getDashboards().find((d) => d.id === "series/popular")!;
+    const d2 = manager
+      .getDashboards()
+      .find((d) => d.id === "series/popular") as BaseDirectoryItem;
     expect(d2).toBeTruthy();
     const r2 = await manager.callDirectory({ directory: d2 });
     expect(r2.items.length).toBe(60);
@@ -461,7 +475,9 @@ describe("client", () => {
     ];
 
     for (const t of todo) {
-      const d1 = manager.getDashboards().find((d) => d.id === t.id)!;
+      const d1 = manager
+        .getDashboards()
+        .find((d) => d.id === t.id) as BaseDirectoryItem;
       expect(d1).toBeTruthy();
       const r1 = await manager.callDirectory({ directory: d1 });
       expect(r1.items.length).toBeGreaterThanOrEqual(t.items);
@@ -515,7 +531,9 @@ describe("client", () => {
     ];
 
     for (const t of todo) {
-      const d1 = manager.getDashboards().find((d) => d.id === t.id)!;
+      const d1 = manager
+        .getDashboards()
+        .find((d) => d.id === t.id) as BaseDirectoryItem;
       expect(d1).toBeTruthy();
       const r1 = await manager.callDirectory({ directory: d1 });
       expect(r1.items.length).toBeGreaterThanOrEqual(t.items);
@@ -538,6 +556,7 @@ describe("client", () => {
           name: "Test",
           catalogs: [
             {
+              type: "directory",
               addonId: "test",
               catalogId: "",
               key: "test/test/",
@@ -679,6 +698,10 @@ describe("client", () => {
     expect(manager.getAddon("xample-worker-iptv")!.props.endpoints![0]).toBe(
       "https://www.mediaurl.io/test/xample-worker-iptv"
     );
+    const directory = manager.getDashboards()[0] as BaseDirectoryItem;
+    expect(directory).toBeTruthy();
+    const result = await manager.callDirectory({ directory });
+    expect(result.items.length).toBeGreaterThanOrEqual(60);
   });
 
   test("test available, xample", async () => {
@@ -788,7 +811,7 @@ describe("client", () => {
     expect(m1.getCatalogs().length).toBe(1);
     expect(m1.getDashboards().length).toBe(1);
 
-    const directory = m1.getDashboards()[0];
+    const directory = m1.getDashboards()[0] as BaseDirectoryItem;
     expect(directory).toBeTruthy();
 
     const r1 = await m1.callDirectory({ directory });

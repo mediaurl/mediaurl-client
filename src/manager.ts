@@ -32,7 +32,6 @@ import {
   AnalyzeEndpointCallback,
   ConvertedRequirement,
   DirectoryInterface,
-  ItemHelper,
   ManagerLoadProps,
   OnCallErrorFn,
   PartialAddonCallOptions,
@@ -44,6 +43,8 @@ import { filterAddons } from "./utils/filterAddons";
 import { mutateUserInput } from "./utils/mutateUserInput";
 import { isAddonResponse } from "./utils/responses";
 import { selectTranslation } from "./utils/selectTranslation";
+
+const clientVersion: string = require("../package.json").version;
 
 type DefaultRequestParams = {
   /**
@@ -537,7 +538,7 @@ export class Manager {
           endpoints: urls,
           options: callOptions!,
           endpointType,
-          body: this.defaultRequestParams,
+          body: { ...this.defaultRequestParams, clientVersion },
           callback: this.miscOptions.analyzeEndpointCallback,
         });
         if (!result) {
@@ -846,6 +847,19 @@ export class Manager {
     for (let i = 0; i < dashboards.length; i++) {
       const item = page.dashboards![i];
 
+      switch (item.type) {
+        case "channel":
+        case "iptv":
+        case "movie":
+        case "series":
+        case "unknown":
+          result.push(item);
+          continue;
+        case "directory":
+        case "copyItems":
+          break;
+      }
+
       const addon = this.getAddon(item.addonId!);
       if (!addon) {
         console.warn(
@@ -867,29 +881,29 @@ export class Manager {
         continue;
       }
 
-      const dashboard = <DashboardItem>item;
-      const catalog = addon.getCatalog(dashboard.catalogId!);
+      const catalog = addon.getCatalog(item.catalogId!);
       if (!catalog) {
         console.warn(
-          `Catalog "${dashboard.catalogId}" for dashboard "${dashboard.key}" not found`
+          `Catalog "${item.catalogId}" for dashboard "${item.key}" not found`
         );
         continue;
       }
 
       const otherPage = addon.getPages().find((p) => p.id === item.pageId);
       const otherDashboard =
-        <DashboardItem>(
-          otherPage?.dashboards?.find((j) => (<any>j).id === dashboard.id)
-        ) ?? dashboard;
+        <typeof item>(
+          otherPage?.dashboards?.find(
+            (j) => j.type === item.type && j.id === item.id
+          )
+        ) ?? item;
 
       result.push({
         ...otherDashboard,
-        ...dashboard,
-        name: dashboard.name ?? otherDashboard?.name ?? catalog?.name,
-        options:
-          dashboard.options ?? otherDashboard?.options ?? catalog?.options,
+        ...item,
+        name: item.name ?? otherDashboard?.name ?? catalog?.name,
+        options: item.options ?? otherDashboard?.options ?? catalog?.options,
         features:
-          dashboard.features ?? otherDashboard?.features ?? catalog?.features,
+          item.features ?? otherDashboard?.features ?? catalog?.features,
       });
     }
     return result;
@@ -957,18 +971,11 @@ export class Manager {
 
   /**
    * Helper function which will run `callCatalog` with the arguments and properties of
-   * a `directory`. Also handles directories from `MainItem.similarItems`.
+   * a `directory`. Also takes care of `BaseDirectoryItem.initialData`.
    */
   public async callDirectory({ directory, options }: CallDirectoryProps) {
-    // This is a quite dirty workaround to easily support statically defined items on a directory.
-    if (
-      directory.addonId === ":internal" &&
-      directory.catalogId === ":similar-items"
-    ) {
-      return {
-        items: <MainItem[]>directory.items ?? [],
-        nextCursor: null,
-      };
+    if (directory.args?.cursor === null && directory.initialData?.items) {
+      return directory.initialData;
     }
 
     const res = await this.callCatalog({
@@ -1103,7 +1110,7 @@ export class Manager {
           return result;
         }
       }
-    } else if ((<ItemHelper>item).sources?.length) {
+    } else if ((<Source[]>item.sources)?.length) {
       result.push(...(<Source[]>item.sources));
       if (item.sourcesExclusive) {
         return result;

@@ -2,6 +2,7 @@ import {
   Addon,
   AddonRequest,
   AddonResponse,
+  BaseDirectoryItem,
   CaptchaRequest,
   CaptchaResponse,
   CatalogArguments,
@@ -9,6 +10,7 @@ import {
   CatalogOptions,
   CatalogRequest,
   CatalogResponse,
+  DirectoryItem,
   ItemImages,
   ItemRequest,
   ItemResponse,
@@ -16,7 +18,6 @@ import {
   ResolveResponse,
   SelftestRequest,
   SelftestResponse,
-  SimilarItem,
   Source,
   SourceRequest,
   SourceResponse,
@@ -47,15 +48,15 @@ interface ClientCatalogPatch {
   /**
    * The `addonId` field only exists on `@mediaurl/client` responses.
    */
+  type: "directory";
+  /**
+   * The `addonId` field only exists on `@mediaurl/client` responses.
+   */
   addonId: string;
   /**
    * The `addonId` field only exists on `@mediaurl/client` responses.
    */
   catalogId?: string;
-  /**
-   * The `addonId` field only exists on `@mediaurl/client` responses.
-   */
-  // id?: string;
 }
 
 interface ClientSourcePatch {
@@ -86,6 +87,7 @@ declare module "@mediaurl/schema" {
   interface VirtualMovieItem extends ClientKeyPatch {}
   interface SeriesEpisodeItem extends ClientKeyPatch {}
   interface ChannelItem extends ClientKeyPatch {}
+  interface UnkownItem extends ClientKeyPatch {}
   interface IptvItem extends ClientKeyPatch {}
 
   interface Source extends ClientKeyPatch, ClientSourcePatch {}
@@ -96,16 +98,16 @@ export type DirectoryInterface = {
   catalogId?: string;
   id?: string;
   args?: CatalogArguments;
-  items?: SimilarItem[];
   options?: CatalogOptions;
   features?: CatalogFeatures;
+  initialData?: BaseDirectoryItem["initialData"];
 };
 
 export interface ItemHelper {
   images?: ItemImages;
   sources?: Source[];
   videos?: Source[];
-  similarItems?: SimilarItem[];
+  similarItems?: DirectoryItem[];
 }
 
 /**

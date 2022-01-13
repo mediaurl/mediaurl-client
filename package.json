@@ -1,14 +1,14 @@
 {
   "name": "@mediaurl/client",
   "description": "MediaURL addon client",
-  "version": "2.1.1",
+  "version": "2.2.0",
   "main": "dist",
   "scripts": {
     "test": "jest",
     "build": "tsc"
   },
   "dependencies": {
-    "@mediaurl/schema": "^2.1.0",
+    "@mediaurl/schema": "^2.2.0",
     "buffer": "^6.0.3",
     "lodash.clonedeep": "^4.5.0",
     "lodash.flatten": "^4.4.0",

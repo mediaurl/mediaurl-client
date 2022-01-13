@@ -17,7 +17,6 @@ export type {
   AddonResponseResult,
   AddonTasks,
   AnalyzeEndpointCallback,
-  ItemHelper,
   ManagerLoadProps,
   OnCallErrorFn,
   Resolvable,

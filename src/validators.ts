@@ -2,18 +2,15 @@ import {
   Addon,
   AddonActions,
   AddonResponse,
+  BaseDirectoryItem,
   CatalogRequest,
   CatalogResponse,
+  DirectoryItem,
   getClientValidators,
   ItemResponse,
-  SimilarItem,
+  MainItem,
 } from "@mediaurl/schema";
 import semver from "semver";
-
-const isAddonLegacy = (addon?: Addon) => {
-  const sdkVersion = <string>addon?.sdkVersion;
-  return !sdkVersion || semver.lt(sdkVersion, "2.0.0-alpha.0");
-};
 
 type MigrateResult = {
   action?: string;
@@ -31,6 +28,41 @@ type Migrations = Record<
   }
 >;
 
+const isAddonLegacyV1 = (addon?: Addon) => {
+  const sdkVersion = <string>addon?.sdkVersion;
+  return !sdkVersion || semver.lt(sdkVersion, "2.0.0-alpha.0");
+};
+
+const isAddonLegacyV2 = (addon?: Addon) => {
+  const sdkVersion = <string>addon?.sdkVersion;
+  return !sdkVersion || semver.lt(sdkVersion, "2.2.0-alpha.0");
+};
+
+const migrateDirectoryV2 = (
+  directory: {
+    options?: any;
+    items?: MainItem[];
+    initialData?: BaseDirectoryItem["initialData"];
+  },
+  migrateItems = true
+) => {
+  if (directory.options?.imageShape) {
+    directory.options.shape = directory.options.imageShape;
+    delete directory.options.imageShape;
+  }
+  if (directory.options?.shape === "regular") {
+    directory.options.shape = "portrait";
+  }
+
+  if (migrateItems && directory.items) {
+    directory.initialData = {
+      items: directory.items,
+      nextCursor: null,
+    };
+    delete directory.items;
+  }
+};
+
 const migrations: Migrations = {
   addon: {
     response: (data: AddonResponse, callingAddon) => {
@@ -39,7 +71,7 @@ const migrations: Migrations = {
       let addon = <Addon>data;
       let any: any = addon;
 
-      if (isAddonLegacy(addon)) {
+      if (isAddonLegacyV1(addon)) {
         delete any.poster;
 
         if (any.flags) {
@@ -136,6 +168,21 @@ const migrations: Migrations = {
       }
       delete any.dashboards;
 
+      if (isAddonLegacyV2(addon)) {
+        addon.catalogs?.forEach((catalog) => migrateDirectoryV2(catalog));
+        addon.pages?.forEach((page) => {
+          page.dashboards?.forEach((dashboard) => {
+            if (dashboard.type === undefined || dashboard.type === null) {
+              // @ts-ignore
+              dashboard.type = "directory";
+            }
+            if (dashboard.type === "directory") {
+              migrateDirectoryV2(dashboard);
+            }
+          });
+        });
+      }
+
       return { data: addon };
     },
   },
@@ -157,7 +204,7 @@ const migrations: Migrations = {
   catalog: {
     request: (data: CatalogRequest, callingAddon) => {
       let action: string | undefined = undefined;
-      if (isAddonLegacy(callingAddon)) {
+      if (isAddonLegacyV1(callingAddon)) {
         action = "directory";
         data.rootId = data.catalogId;
         delete data.catalogId;
@@ -165,7 +212,7 @@ const migrations: Migrations = {
       return { action, data };
     },
     response: (data: CatalogResponse, callingAddon) => {
-      if (isAddonLegacy(callingAddon)) {
+      if (isAddonLegacyV1(callingAddon)) {
         const any: any = data;
         if (data.items) {
           data.items = data.items.map((item) => {
@@ -179,21 +226,45 @@ const migrations: Migrations = {
         }
         data.catalogId = <string>any.rootId;
         delete any.rootId;
+      } else if (isAddonLegacyV2(callingAddon)) {
+        data.items?.forEach((item) => {
+          if (item.type === "directory") {
+            migrateDirectoryV2(item);
+          }
+        });
+        migrateDirectoryV2(data, false);
       }
       return { data };
     },
   },
   item: {
     response: (data: ItemResponse, callingAddon) => {
-      if (isAddonLegacy(callingAddon)) {
+      if (isAddonLegacyV1(callingAddon)) {
         if (data) {
           if (data?.similarItems) {
-            data.similarItems = (<SimilarItem[]>data.similarItems).map((s) => {
-              s.catalogId = <any>s.rootId;
-              delete s.rootId;
-              return s;
-            });
+            data.similarItems = (<DirectoryItem[]>data.similarItems).map(
+              (s) => {
+                s.catalogId = <any>s.rootId;
+                delete s.rootId;
+                return s;
+              }
+            );
           }
+        }
+      } else if (isAddonLegacyV2(callingAddon)) {
+        if (data?.similarItems) {
+          (data.similarItems as DirectoryItem[]).forEach((directory) => {
+            if (directory.type === undefined || directory.type === null) {
+              // @ts-ignore
+              directory.type = "directory";
+            }
+            migrateDirectoryV2(directory);
+            directory.initialData?.items?.forEach((item) => {
+              if (item.type === "directory") {
+                migrateDirectoryV2(item);
+              }
+            });
+          });
         }
       }
       return { data };

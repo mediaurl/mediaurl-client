@@ -1,5 +1,6 @@
 import {
   Addon,
+  DirectoryItem,
   IptvItem,
   ItemTypes,
   MainItem,
@@ -14,7 +15,6 @@ import {
 import cloneDeep from "lodash.clonedeep";
 import isEqual from "lodash.isequal";
 import uniq from "lodash.uniq";
-import uniqBy from "lodash.uniqby";
 import { ItemHelper } from "./types";
 import { stripAddonUrl } from "./utils/addonUrl";
 import { djb2 } from "./utils/djb2";
@@ -66,7 +66,7 @@ export const createItem = (
   addon: Addon | null,
   newItem: MainItem | SubItem,
   oldItem: Partial<MainItem | SubItem> = {},
-  childType: string | null = null
+  childType: ItemTypes | "episode" | null = null
 ) => {
   // Disallow change of item type unless the old is `channel` and
   // the new is `movie` or `series.
@@ -82,23 +82,43 @@ export const createItem = (
     );
   }
 
-  const type = <ItemTypes>(childType ?? newItem.type ?? oldItem.type);
-
   const item: Partial<MainItem | SubItem> = {
     ...oldItem,
     ...newItem,
-    type,
-    images: {
-      ...(<ItemHelper>oldItem).images,
-      ...((<ItemHelper>newItem).images ? (<ItemHelper>newItem).images : null),
-    },
+    type: childType ?? newItem.type ?? oldItem.type,
   };
 
-  if (type === "directory") {
+  // switch (type) {
+  //   default:
+  //     throw new Error(`Unknown item type: "${type}"`);
+  //   case "directory":
+  //     break;
+  //   case "channel":
+  //   case "movie":
+  //   case "series":
+  //   case "unknown":
+  //     break;
+  //   case "iptv":
+  //     break;
+  // }
+
+  if (item.images) {
+    item.images = {
+      ...(<ItemHelper>oldItem).images,
+      ...((<ItemHelper>newItem).images ? (<ItemHelper>newItem).images : null),
+    };
+  }
+
+  if (item.type === "directory") {
     if (!item.addonId && addon) item.addonId = addon.id;
     if (!item.catalogId) item.catalogId = "";
     if (!item.id) item.id = oldItem.id;
     if (!item.key) item.key = `${item.addonId}/${item.catalogId}/${item.id}`;
+    if (item.initialData) {
+      item.initialData = (<DirectoryItem>item).initialData?.items?.map((i) =>
+        createItem(addon, i)
+      );
+    }
   } else {
     item.ids = {
       ...(<PlayableItem>oldItem).ids,
@@ -120,41 +140,40 @@ export const createItem = (
         item.key += `:${item.season}:${item.episode}`;
       }
     }
-  }
 
-  if (item.type === "series") {
-    const childs: Record<
-      string,
-      {
-        new?: SeriesEpisodeItem;
-        old?: SeriesEpisodeItem;
+    // Handle episodes
+    if (item.type === "series") {
+      const childs: Record<
+        string,
+        {
+          new?: SeriesEpisodeItem;
+          old?: SeriesEpisodeItem;
+        }
+      > = {};
+      const get = (e: SeriesEpisodeItem) => {
+        const k = `${e.season}-${e.episode}`;
+        if (!childs[k]) childs[k] = {};
+        return childs[k];
+      };
+      for (const episode of (<SeriesItem>newItem).episodes ?? []) {
+        get(episode).new = episode;
       }
-    > = {};
-    const get = (e: SeriesEpisodeItem) => {
-      const k = `${e.season}-${e.episode}`;
-      if (!childs[k]) childs[k] = {};
-      return childs[k];
-    };
-    for (const episode of (<SeriesItem>newItem).episodes ?? []) {
-      get(episode).new = episode;
-    }
-    for (const episode of (<SeriesItem>oldItem).episodes ?? []) {
-      get(episode).old = episode;
-    }
-    const episodes: SeriesEpisodeItem[] = [];
-    for (const c of Object.values(childs)) {
-      if (c.new) {
-        episodes.push(
-          <SeriesEpisodeItem>createItem(addon, c.new, c.old ?? {}, "episode")
-        );
-      } else if (c.old) {
-        episodes.push(c.old);
+      for (const episode of (<SeriesItem>oldItem).episodes ?? []) {
+        get(episode).old = episode;
       }
+      const episodes: SeriesEpisodeItem[] = [];
+      for (const c of Object.values(childs)) {
+        if (c.new) {
+          episodes.push(
+            <SeriesEpisodeItem>createItem(addon, c.new, c.old ?? {}, "episode")
+          );
+        } else if (c.old) {
+          episodes.push(c.old);
+        }
+      }
+      item.episodes = episodes;
     }
-    item.episodes = episodes;
-  }
 
-  if (item.type !== "directory") {
     // Merge videos
     if (["movie", "series"].includes(<string>item.type)) {
       const videos = {};
@@ -180,10 +199,7 @@ export const createItem = (
         item.sources = [
           createSource(
             addon,
-            {
-              type: "url",
-              url: <string>(<IptvItem>newItem).url,
-            },
+            { type: "url", url: <string>(<IptvItem>newItem).url },
             "source"
           ),
         ];
@@ -203,25 +219,9 @@ export const createItem = (
 
     // Handle similar items
     if (item.similarItems) {
-      const all = uniqBy(
-        [
-          ...((<ItemHelper>newItem)?.similarItems ?? []),
-          ...((<ItemHelper>oldItem)?.similarItems ?? []),
-        ],
-        "id"
-      );
-      item.similarItems = all
-        .map((s) => {
-          if (s.items?.length) {
-            s.addonId = ":internal";
-            s.catalogId = ":similar-items";
-            s.items = s.items.map(
-              (i: MainItem) => <MainItem>createItem(addon, i)
-            );
-          }
-          return s;
-        })
-        .filter((s) => s);
+      item.similarItems = (
+        (newItem.similarItems ?? oldItem.similarItems) as DirectoryItem[]
+      ).map((directory) => createItem(addon, directory));
     }
   }
 
