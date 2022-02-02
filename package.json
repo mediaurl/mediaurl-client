@@ -8,7 +8,7 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@mediaurl/schema": "^2.2.0",
+    "@mediaurl/schema": "^2.3.0-alpha.0",
     "buffer": "^6.0.3",
     "lodash.clonedeep": "^4.5.0",
     "lodash.flatten": "^4.4.0",

@@ -131,6 +131,12 @@ type CallCaptchaProps = BaseCallProps & {
   onError?: OnCallErrorFn;
 };
 
+type CallPushNotificationProps = BaseCallProps & {
+  ignoreKeys: string[];
+  metadata: Record<string, any>;
+  onError?: OnCallErrorFn;
+};
+
 export class Manager {
   private addons: BaseAddonClass[];
 
@@ -1306,6 +1312,41 @@ export class Manager {
           },
         });
         if (res !== null) return res.token;
+      } catch (error) {
+        if (onError) onError(context.addon, error);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Call the `push-notification` addon action.
+   */
+  public async callPushNotification({
+    ignoreKeys,
+    metadata,
+    onError,
+    options,
+  }: CallPushNotificationProps) {
+    const contexts = filterAddons(this.addons, {
+      action: "push-notification",
+    });
+    for (const context of contexts) {
+      try {
+        const res = await context.addon.call({
+          options: { ...this.addonCallOptions, ...options },
+          action: "push-notification",
+          input: {
+            ...this.defaultRequestParams,
+            metadata,
+          },
+        });
+        if (res !== null) {
+          const key = `${context.addon.props.id}/${res.id}`;
+          if (!ignoreKeys.includes(key)) {
+            return { ...res, key };
+          }
+        }
       } catch (error) {
         if (onError) onError(context.addon, error);
       }

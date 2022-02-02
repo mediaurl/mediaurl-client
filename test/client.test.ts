@@ -37,7 +37,7 @@ describe("client", () => {
       endpointTestTimeout: 1000,
       loadNextTimeout: 2000,
       signature:
-        "eyJkYXRhIjoie1xuICBcInRpbWVcIjogMTY0MjA3NTM1NDAwMCxcbiAgXCJ2YWxpZFVudGlsXCI6IDE2NDIxNjE3NTQwMDAsXG4gIFwidXNlclwiOiBcImZvb2JhclwiLFxuICBcInN0YXR1c1wiOiBcImd1ZXN0XCIsXG4gIFwiaXBzXCI6IFtdLFxuICBcImFwcFwiOiB7XG4gICAgXCJuYW1lXCI6IFwiZm9vXCIsXG4gICAgXCJ2ZXJzaW9uXCI6IFwiMS4yLjNcIixcbiAgICBcInBsYXRmb3JtXCI6IFwidGVzdFwiLFxuICAgIFwib2tcIjogdHJ1ZVxuICB9XG59Iiwic2lnbmF0dXJlIjoiTEVsUTBSV080VjBiNHhPOGtoY3ZpMlZkbEJQOWdFUVBhU0JTYzVHZ2JneDg5ZTBRLzhUN2ZmaHNaRW11djNLNGZHZW1janZRWERnODQ1YVZ1R1UxaUtVKzVYeUZsZ2dhSnJncDZwZE5sSVQ4b0E5OEl5M2dKNlpTbVJmRjhpbmZmVFZLYVlCRmVYb3RGRStDQjFZMTJwbmlzT2RYSWZya3M4OE0yVUJhU3FjPSJ9",
+        "eyJkYXRhIjoie1xuICBcInRpbWVcIjogMTY0Mzg0MDE5NDAwMCxcbiAgXCJ2YWxpZFVudGlsXCI6IDE2NDM5MjY1OTQwMDAsXG4gIFwidXNlclwiOiBcImZvb2JhclwiLFxuICBcInN0YXR1c1wiOiBcImd1ZXN0XCIsXG4gIFwiaXBzXCI6IFtdLFxuICBcImFwcFwiOiB7XG4gICAgXCJuYW1lXCI6IFwiZm9vXCIsXG4gICAgXCJ2ZXJzaW9uXCI6IFwiMS4yLjNcIixcbiAgICBcInBsYXRmb3JtXCI6IFwidGVzdFwiLFxuICAgIFwib2tcIjogdHJ1ZVxuICB9XG59Iiwic2lnbmF0dXJlIjoidzF3K0lCa1RLTTFBSm41NDFMVk0yWVJZN1pqR21BVmJzbVFGVlBYWUZVRVl1UDR6dWtsb1ZxT0QzQjV5aWFzZnJXQm45VmdpS2R3SzFxQUxUeTJqa0ZIazJOL014di8vZFNtT2MxcGtGbXh4d3hZcjVzWkg5L0h6TnV6MVZOdzRydnpZakMwN0VLNlcyTkZyZkZHZi82VnlhU3pVZkVVNDZPYklUTk1VVVpFPSJ9",
     });
 
   let manager: Manager;
@@ -554,6 +554,7 @@ describe("client", () => {
         {
           id: "test",
           name: "Test",
+          actions: ["push-notification"],
           catalogs: [
             {
               type: "directory",
@@ -579,7 +580,15 @@ describe("client", () => {
       return true;
     }
 
-    public async call() {
+    public async call({ action }) {
+      console.log("CALL", action);
+      if (action === "push-notification") {
+        return {
+          id: "foo",
+          title: "Foo title",
+          message: "Foo message",
+        };
+      }
       return null;
     }
   }
@@ -816,5 +825,21 @@ describe("client", () => {
 
     const r1 = await m1.callDirectory({ directory });
     expect(r1.items.length).toBe(3);
+  });
+
+  test("push-notification", async () => {
+    const m1 = newManager();
+    await expect(
+      m1.load({
+        ...loadDefaults,
+        inputs: [{ addonClass: new TestAddonClass() }],
+        discover: false,
+      })
+    ).resolves.toBeUndefined();
+    expect(m1.getAddons().length).toBe(1);
+    m1.getAddonOrThrow("test");
+
+    const r1 = await m1.callPushNotification({ ignoreKeys: [], metadata: {} });
+    expect(r1).toBeTruthy();
   });
 });

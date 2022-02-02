@@ -14,6 +14,8 @@ import {
   ItemImages,
   ItemRequest,
   ItemResponse,
+  PushNotificationRequest,
+  PushNotificationResponse,
   ResolveRequest,
   ResolveResponse,
   SelftestRequest,
@@ -230,6 +232,10 @@ type AddonActions = {
   subtitle: InputOutputPairs<SubtitleRequest, SubtitleResponse>;
   resolve: InputOutputPairs<ResolveRequest, ResolveResponse>;
   captcha: InputOutputPairs<CaptchaRequest, CaptchaResponse>;
+  "push-notification": InputOutputPairs<
+    PushNotificationRequest,
+    PushNotificationResponse
+  >;
 };
 
 export type AddonCallAction = Extract<keyof AddonActions, string>;
