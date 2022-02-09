@@ -115,9 +115,11 @@ export const createItem = (
     if (!item.catalogId) item.catalogId = "";
     if (!item.id) item.id = oldItem.id;
     if (!item.key) item.key = `${item.addonId}/${item.catalogId}/${item.id}`;
-    if (item.initialData) {
-      item.initialData = (<DirectoryItem>item).initialData?.items?.map((i) =>
-        createItem(addon, i)
+
+    const pDirectory = <DirectoryItem>item;
+    if (pDirectory.initialData?.items) {
+      pDirectory.initialData.items = <any>(
+        pDirectory.initialData?.items.map((i) => createItem(addon, i))
       );
     }
   } else {
@@ -224,7 +226,9 @@ export const createItem = (
     if (item.similarItems) {
       item.similarItems = (
         (newItem.similarItems ?? oldItem.similarItems) as DirectoryItem[]
-      ).map((directory) => createItem(addon, directory));
+      ).map((directory) => {
+        return createItem(addon, directory);
+      });
     }
   }
 
