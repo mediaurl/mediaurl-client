@@ -1331,6 +1331,10 @@ export class Manager {
     const contexts = filterAddons(this.addons, {
       action: "push-notification",
     });
+    const keys = ignoreKeys.map((key) => {
+      const m = /^([^\/]+\/(.*)$)/.exec(key);
+      return m ? { addonId: m[1], id: m[2] } : { addonId: null, id: key };
+    });
     for (const context of contexts) {
       try {
         const res = await context.addon.call({
@@ -1338,6 +1342,9 @@ export class Manager {
           action: "push-notification",
           input: {
             ...this.defaultRequestParams,
+            ignoreIds: keys
+              .filter((k) => k.addonId === context.addon.props.id)
+              .map((k) => k.id),
             metadata,
           },
         });

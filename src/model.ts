@@ -66,7 +66,8 @@ export const createItem = (
   addon: Addon | null,
   newItem: MainItem | SubItem,
   oldItem: Partial<MainItem | SubItem> = {},
-  childType: ItemTypes | "episode" | null = null
+  childType: ItemTypes | "episode" | null = null,
+  parentKey: string | null = null
 ) => {
   // Disallow change of item type unless the old is `channel` and
   // the new is `movie` or `series.
@@ -135,7 +136,7 @@ export const createItem = (
     // Create an unique item key
     if (!item.key) {
       const id = Object.keys(item.ids)[0];
-      item.key = `${id}:${item.ids[id]}`;
+      item.key = `${parentKey ? `${parentKey}:` : ""}${id}:${item.ids[id]}`;
       if (item.type === "episode") {
         item.key += `:${item.season}:${item.episode}`;
       }
@@ -165,7 +166,9 @@ export const createItem = (
       for (const c of Object.values(childs)) {
         if (c.new) {
           episodes.push(
-            <SeriesEpisodeItem>createItem(addon, c.new, c.old ?? {}, "episode")
+            <SeriesEpisodeItem>(
+              createItem(addon, c.new, c.old ?? {}, "episode", item.key)
+            )
           );
         } else if (c.old) {
           episodes.push(c.old);
