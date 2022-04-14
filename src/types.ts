@@ -89,7 +89,7 @@ declare module "@mediaurl/schema" {
   interface VirtualMovieItem extends ClientKeyPatch {}
   interface SeriesEpisodeItem extends ClientKeyPatch {}
   interface ChannelItem extends ClientKeyPatch {}
-  interface UnkownItem extends ClientKeyPatch {}
+  interface UnknownItem extends ClientKeyPatch {}
   interface IptvItem extends ClientKeyPatch {}
 
   interface Source extends ClientKeyPatch, ClientSourcePatch {}
@@ -135,7 +135,7 @@ export type ManagerLoadProps = {
       endpoints?: string[];
       userInput?: string;
     },
-    error: Error
+    error: Error,
   ) => void;
 
   /**
@@ -253,7 +253,7 @@ export type AddonCallResult<A extends AddonCallAction> = Promise<
 
 type AddonTaskHandler<Request = TaskRequest, Response = TaskResponse> = (
   addon: BaseAddonClass,
-  data: Request
+  data: Request,
 ) => Promise<Response>;
 
 export type AddonTasks = {
@@ -280,5 +280,5 @@ export type AddonResponseResult = {
 
 export type AnalyzeEndpointCallback = (
   url: string,
-  fn: () => Promise<AddonResponseResult[]>
+  fn: () => Promise<AddonResponseResult[]>,
 ) => Promise<AddonResponseResult[]>;
