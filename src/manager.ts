@@ -38,7 +38,7 @@ import {
   Resolvable,
 } from "./types";
 import { stripAddonUrl } from "./utils/addonUrl";
-import { analyzeEndpoints, EndpointType } from "./utils/analyzeEndpoints";
+import { EndpointType, analyzeEndpoints } from "./utils/analyzeEndpoints";
 import { filterAddons } from "./utils/filterAddons";
 import { mutateUserInput } from "./utils/mutateUserInput";
 import { isAddonResponse } from "./utils/responses";
@@ -76,7 +76,7 @@ type Options = AddonCallOptions & DefaultRequestParams & MiscOptions;
 
 type ResolveResult = {
   lastError: null | string;
-  resolved: ResolvedUrl[];
+  resolvedUrls: ResolvedUrl[];
 };
 
 type BaseCallProps = {
@@ -204,7 +204,7 @@ export class Manager {
     props: Addon,
     infos: AddonInfos,
     additionalEndpoints?: string[],
-    force = false
+    force = false,
   ) {
     const old = this.addons.find((addon) => addon.props.id === props.id);
     if (old) {
@@ -226,7 +226,7 @@ export class Manager {
    */
   public addAddonClass(addon: BaseAddonClass, index: number | null = null) {
     const i = this.addons.findIndex(
-      (other) => other.props.id === addon.props.id
+      (other) => other.props.id === addon.props.id,
     );
     if (i === -1) {
       this.addons.splice(index ?? this.addons.length - 1, 0, addon);
@@ -268,7 +268,7 @@ export class Manager {
    */
   public getAddons() {
     return this.addons.filter(
-      (addon) => this.miscOptions.adult || !addon.props.adult
+      (addon) => this.miscOptions.adult || !addon.props.adult,
     );
   }
 
@@ -363,7 +363,7 @@ export class Manager {
     const addAvailable = (
       props: Addon,
       requirePath: string[],
-      additionalEndpoints?: string[]
+      additionalEndpoints?: string[],
     ) => {
       stats.addAvailable++;
       if (available[props.id]?.isNewerThan(props.version)) {
@@ -389,7 +389,7 @@ export class Manager {
       endpointType: EndpointType,
       isKnownRequirement: boolean,
       requirePath: string[],
-      rootIndex?: number
+      rootIndex?: number,
     ) => {
       stats.handleRequirement++;
       if (discover && requirePath.length >= maxDepth) return;
@@ -406,7 +406,7 @@ export class Manager {
           ) {
             spawn(
               `req-class-${other.props.id}`,
-              loadViaAddon(other, isKnownRequirement, requirePath, rootIndex)
+              loadViaAddon(other, isKnownRequirement, requirePath, rootIndex),
             );
           } else {
             checkAddon(other, isKnownRequirement, requirePath, rootIndex);
@@ -423,8 +423,8 @@ export class Manager {
             endpointType,
             isKnownRequirement,
             requirePath,
-            rootIndex
-          )
+            rootIndex,
+          ),
         );
       }
     };
@@ -433,7 +433,7 @@ export class Manager {
       addon: BaseAddonClass,
       isKnownRequirement: boolean,
       requirePath: string[],
-      rootIndex?: number
+      rootIndex?: number,
     ) => {
       stats.checkAddon++;
       requirePath = [...requirePath, addon.props.id];
@@ -467,7 +467,7 @@ export class Manager {
           "unknown",
           isKnownRequirement,
           requirePath,
-          rootIndex
+          rootIndex,
         );
       }
 
@@ -479,7 +479,7 @@ export class Manager {
         if (!discover || requirePath.length < maxDepth) {
           spawn(
             `repo-${addon.props.id}`,
-            loadViaRepository(addon, requirePath)
+            loadViaRepository(addon, requirePath),
           );
         }
       }
@@ -488,7 +488,7 @@ export class Manager {
     // Legacy
     const loadViaRepository = async (
       addon: BaseAddonClass,
-      requirePath: string[]
+      requirePath: string[],
     ) => {
       ignore.add(addon.props.id);
       try {
@@ -506,15 +506,15 @@ export class Manager {
             (props.endpoints ?? []).map((endpoint) =>
               addon
                 .getEndpoints()
-                .map((base) => new Url(endpoint, base).toString())
-            )
+                .map((base) => new Url(endpoint, base).toString()),
+            ),
           );
           // addAvailable(props, requirePath);
           handleRequirement(
             { legacyId: props.id, endpoints: props.endpoints },
             "addon",
             false,
-            requirePath
+            requirePath,
           );
         }
       } catch (error) {
@@ -529,7 +529,7 @@ export class Manager {
       endpointType: EndpointType,
       isKnownRequirement: boolean,
       requirePath: string[],
-      rootIndex?: number
+      rootIndex?: number,
     ) => {
       const urls: string[] = [];
       for (const endpoint of endpoints) {
@@ -556,7 +556,7 @@ export class Manager {
               addAvailable(r.props, requirePath),
               r.isServer ? false : isKnownRequirement,
               requirePath,
-              rootIndex
+              rootIndex,
             );
           } else if (r.endpoints) {
             handleRequirement(
@@ -564,7 +564,7 @@ export class Manager {
               r.isServer ? "server" : "addon",
               r.isServer ? false : isKnownRequirement,
               requirePath,
-              rootIndex
+              rootIndex,
             );
           }
         }
@@ -577,7 +577,7 @@ export class Manager {
       addon: BaseAddonClass,
       isKnownRequirement: boolean,
       requirePath: string[],
-      rootIndex?: number
+      rootIndex?: number,
     ) => {
       for (const url of addon.getEndpoints()) {
         ignore.add(url);
@@ -602,7 +602,7 @@ export class Manager {
             addAvailable(<Addon>res, requirePath, addon.getEndpoints()),
             isKnownRequirement,
             requirePath,
-            rootIndex
+            rootIndex,
           );
         }
       } catch (error) {
@@ -625,14 +625,14 @@ export class Manager {
               ? input.addonClass
               : addAvailable(
                   input.addonClass.props,
-                  input.addonClass.infos.requirePath
+                  input.addonClass.infos.requirePath,
                 ),
             true,
             input.addonClass.infos.requirePath,
             input.addonClass.infos.requirePath.length === 0
               ? rootIndex++
-              : undefined
-          )
+              : undefined,
+          ),
         );
       } else if (input.addonProps) {
         spawn(
@@ -641,8 +641,8 @@ export class Manager {
             addAvailable(input.addonProps, []),
             true,
             [],
-            rootIndex++
-          )
+            rootIndex++,
+          ),
         );
       } else if (input.endpoints) {
         handleRequirement(
@@ -650,7 +650,7 @@ export class Manager {
           "unknown",
           true,
           [],
-          rootIndex++
+          rootIndex++,
         );
       } else if (input.url) {
         handleRequirement(
@@ -658,7 +658,7 @@ export class Manager {
           "unknown",
           true,
           [],
-          rootIndex++
+          rootIndex++,
         );
       } else if (input.userInput) {
         if (!ignore.has(input.userInput)) {
@@ -667,7 +667,7 @@ export class Manager {
             "unknown",
             true,
             [],
-            rootIndex++
+            rootIndex++,
           );
         }
       } else {
@@ -709,7 +709,7 @@ export class Manager {
         const message = `Collected ${this.addons.length} addons, but found ${
           sorted.length
         } required. Diff: ${Array.from(diff1).join(", ")} / ${Array.from(
-          diff2
+          diff2,
         ).join(", ")}`;
         console.warn(message);
         // throw new Error(message);
@@ -790,7 +790,7 @@ export class Manager {
   public getCatalogForDirectory(directory: DirectoryInterface) {
     return this.getCatalog(
       <string>directory.addonId,
-      directory.catalogId ?? ""
+      directory.catalogId ?? "",
     );
   }
 
@@ -869,7 +869,7 @@ export class Manager {
       const addon = this.getAddon(item.addonId!);
       if (!addon) {
         console.warn(
-          `Addon "${item.addonId}" for item in page "${page.key}" not found`
+          `Addon "${item.addonId}" for item in page "${page.key}" not found`,
         );
         continue;
       }
@@ -878,7 +878,7 @@ export class Manager {
         const otherPage = addon.getPages().find((p) => p.id === item.pageId);
         if (!otherPage) {
           console.warn(
-            `Page "${item.addonId}/${item.pageId}" for item in page "${page.key}" not found`
+            `Page "${item.addonId}/${item.pageId}" for item in page "${page.key}" not found`,
           );
         } else {
           dashboards.splice(i, 1, ...otherPage.dashboards!);
@@ -890,7 +890,7 @@ export class Manager {
       const catalog = addon.getCatalog(item.catalogId!);
       if (!catalog) {
         console.warn(
-          `Catalog "${item.catalogId}" for dashboard "${item.key}" not found`
+          `Catalog "${item.catalogId}" for dashboard "${item.key}" not found`,
         );
         continue;
       }
@@ -899,7 +899,7 @@ export class Manager {
       const otherDashboard =
         <typeof item>(
           otherPage?.dashboards?.find(
-            (j) => j.type === item.type && j.id === item.id
+            (j) => j.type === item.type && j.id === item.id,
           )
         ) ?? item;
 
@@ -921,7 +921,7 @@ export class Manager {
   private itemToRequest(
     addon: BaseAddonClass,
     item: MainItem,
-    subItem?: SubItem
+    subItem?: SubItem,
   ) {
     return {
       type: item.type,
@@ -1021,7 +1021,7 @@ export class Manager {
     const catalog = addon.getCatalog(catalogId);
     if (!catalog) {
       console.warn(
-        `Catalog "${addon.props.id}/${catalogId}" for directory "${directoryId}" not found.`
+        `Catalog "${addon.props.id}/${catalogId}" for directory "${directoryId}" not found.`,
       );
     }
 
@@ -1049,7 +1049,7 @@ export class Manager {
           if (!props) return false;
           if (keys.has(props.id)) {
             console.debug(
-              `Addon ${addon.props.id} returned duplicate item ${props.key}`
+              `Addon ${addon.props.id} returned duplicate item ${props.key}`,
             );
             return false;
           }
@@ -1089,7 +1089,7 @@ export class Manager {
             if (onError) onError(context.addon, error);
           }
         }
-      })
+      }),
     );
     return item;
   }
@@ -1145,8 +1145,8 @@ export class Manager {
             if (sources.length > 0) {
               result.push(
                 ...sources.map((source) =>
-                  createSource(context.addon.props, source, "source")
-                )
+                  createSource(context.addon.props, source, "source"),
+                ),
               );
               // addAddonToItem(item, context.addon);
               if (onUpdate) {
@@ -1159,7 +1159,7 @@ export class Manager {
             if (onError) onError(context.addon, error);
           }
         }
-      })
+      }),
     );
     return uniqBy(result, "id");
   }
@@ -1181,7 +1181,7 @@ export class Manager {
     const result: Subtitle[] = [];
     if (source?.subtitles) {
       result.push(
-        ...source.subtitles.map((subtitle) => createSubtitle(subtitle))
+        ...source.subtitles.map((subtitle) => createSubtitle(subtitle)),
       );
     }
 
@@ -1206,7 +1206,7 @@ export class Manager {
             if (subtitles) {
               if (!Array.isArray(subtitles)) subtitles = [subtitles];
               result.push(
-                ...subtitles.map((subtitle) => createSubtitle(subtitle))
+                ...subtitles.map((subtitle) => createSubtitle(subtitle)),
               );
             }
           } catch (error) {
@@ -1214,7 +1214,7 @@ export class Manager {
               if (onError) onError(context.addon, error);
             }
           }
-        })
+        }),
       );
     }
 
@@ -1250,23 +1250,23 @@ export class Manager {
         if (!result) continue;
 
         // addAddonToItem(item, context.addon);
-        let resolved: ResolvedUrl[];
+        let resolvedUrls: ResolvedUrl[];
         if (typeof result === "string") {
-          resolved = [{ url: result }];
+          resolvedUrls = [{ url: result }];
         } else if (!Array.isArray(result)) {
-          resolved = [result];
+          resolvedUrls = [result];
         } else {
-          resolved = result.map((url) =>
-            typeof url === "string" ? { url } : url
+          resolvedUrls = result.map((url) =>
+            typeof url === "string" ? { url } : url,
           );
         }
-        if (!resolved.length) continue;
+        if (!resolvedUrls.length) continue;
 
-        const nextResolvable = resolved.find((r) => r.resolveAgain);
+        const nextResolvable = resolvedUrls.find((r) => r.resolveAgain);
         if (nextResolvable) {
-          if (resolved.length > 1) {
+          if (resolvedUrls.length > 1) {
             throw new Error(
-              "Can not resolve in chains with more than one resolved item"
+              "Can not resolve in chains with more than one resolved item",
             );
           }
           return await this.callResolve({
@@ -1276,7 +1276,7 @@ export class Manager {
           });
         }
 
-        return { lastError: null, resolved };
+        return { lastError: null, resolvedUrls };
       } catch (error) {
         lastError = `${context.addon.props.name}: ${error.message}`;
         if (onError) onError(context.addon, error);
@@ -1286,10 +1286,10 @@ export class Manager {
     if (contexts.length === 0) {
       return {
         lastError,
-        resolved: [{ name: resolvable.name, url: resolvable.url }],
+        resolvedUrls: [{ name: resolvable.name, url: resolvable.url }],
       };
     } else {
-      return { lastError, resolved: [] };
+      return { lastError, resolvedUrls: [] };
     }
   }
 
